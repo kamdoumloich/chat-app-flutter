@@ -35,10 +35,18 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
-  void getMessages() async {
-    final messagesComming = await _firestore.collection('messages').get();
-    for (var msg in messagesComming.docs) {
-      print(msg.data());
+  // void getMessages() async {
+  //   final messagesComming = await _firestore.collection('messages').get();
+  //   for (var msg in messagesComming.docs) {
+  //     print(msg.data());
+  //   }
+  // }
+
+  void getMessagesStream() async {
+    await for (var snapshot in _firestore.collection('messages').snapshots()) {
+      for (var msg in snapshot.docs) {
+        print(msg.data());
+      }
     }
   }
 
@@ -53,7 +61,8 @@ class _ChatScreenState extends State<ChatScreen> {
               onPressed: () {
                 // _auth.signOut();
                 // Navigator.pop(context);
-                getMessages();
+                // getMessages();
+                getMessagesStream();
               }),
         ],
         title: Text('⚡️Chat'),
@@ -64,6 +73,33 @@ class _ChatScreenState extends State<ChatScreen> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
+            StreamBuilder<QuerySnapshot>(
+              stream: _firestore.collection('messages').snapshots(),
+              builder: (BuildContext context,
+                  AsyncSnapshot<QuerySnapshot> snapshot) {
+                List<Text> listMessageWidget = [];
+                if (!snapshot.hasData) {
+                  return Center(
+                    child: CircularProgressIndicator(
+                      backgroundColor: Colors.lightBlueAccent,
+                    ),
+                  );
+                }
+                // else {
+                final msg = snapshot.data?.docs;
+                for (var message in msg!) {
+                  final msgText = message.get('text');
+                  final msgSender = message.get('sender');
+
+                  final messageWidget = Text('$msgText from $msgSender');
+                  listMessageWidget.add(messageWidget);
+                  // }
+                }
+                return Column(
+                  children: listMessageWidget,
+                );
+              },
+            ),
             Container(
               decoration: kMessageContainerDecoration,
               child: Row(
